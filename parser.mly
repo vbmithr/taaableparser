@@ -21,11 +21,7 @@ triples:
 
 node:
 | ac = ID LPAR ingr = ingredients RPAR
-    {
-      let verb, step = id_step_of_id ac in
-        { name=verb; step_id=step; ingredients=ingr }
-
-    }
+    { { name=ac; ingredients=ingr } }
 
 ingredients:
 | { [] }

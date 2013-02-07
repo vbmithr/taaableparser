@@ -11,7 +11,6 @@ type ingredient = string
 type node =
     {
       name: string;
-      step_id: int;
       ingredients: ingredient list
     }
 
@@ -32,20 +31,31 @@ let rec leaves_of_tree = function
   | Leaf l       -> [l]
   | Node (n, ns) -> List.flatten (List.map (fun (n, a) -> leaves_of_tree n) ns)
 
-(* let tree_of_triple tr1 tr2 = *)
-(*   if tr1 = tr2 then *)
-(*     match tr1 with -> *)
-(*       n1, a, n2 -> Node (n1, [n2, a]) *)
-(*   else *)
-(*     match tr1, tr2 with *)
-(*       | (n11, a1, n12), (n21, a2, n22) -> *)
-(*         ( *)
-(*           if n12 = n22 then Node(n12, [n11, a1; n21, a2]) *)
-(*           else if n12 = n21 then Node(n22, *)
+let tree_of_triple (n1, a, n2) = Node (n2, [Leaf n1, a])
 
-(*         ) *)
-(*       | _ -> failwith "unify_triple" *)
+(* Like List.map but for a tree *)
+let rec tree_map f = function
+  | Leaf l -> f (Leaf l)
+  | Node (n, ns) -> f (Node (n, List.map (fun (t,a) -> (f t), a) ns))
 
+(* Like List.mem but for a tree *)
+let rec tree_mem n = function
+  | Leaf l -> n = l
+  | Node (l, ns) -> l = n || List.exists (fun (t,a) -> (tree_mem n t)) ns
+
+(* Try to merge tr1 and tr2 *)
+let merge_trees tr1 tr2 =
+  let merged = ref false in
+  let map_fun target n = match n, target with
+    | Node (l, ns), Node (ll, nss) ->
+      if l = ll then (merged := true; Node (l, ns @ nss)) else Node (l, ns)
+    | _ -> failwith "merge_trees"
+  in
+  let new_tree = tree_map (map_fun tr2) tr1 in
+  if not !merged then
+    let new_tree = tree_map (map_fun tr1) tr2 in
+    if !merged then [new_tree] else [tr1; tr2]
+  else [new_tree]
 
 (* Misc. *)
 
@@ -72,7 +82,7 @@ let string_of_action (v, t) =
 
 let string_of_node n =
   let ingredients = string_concat "," n.ingredients in
-  Printf.sprintf "%s_%d(%s)" n.name n.step_id ingredients
+  Printf.sprintf "%s(%s)" n.name ingredients
 
 let string_of_triple (n1, action, n2) =
   Printf.sprintf "%s: %s => %s"
